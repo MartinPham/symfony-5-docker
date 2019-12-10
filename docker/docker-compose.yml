@@ -1,0 +1,44 @@
+version: '3'
+
+services:
+  database:
+    build:
+      context: ./database
+    environment:
+      - MYSQL_DATABASE=symfony
+      - MYSQL_USER=appuser
+      - MYSQL_PASSWORD=apppassword
+      - MYSQL_ROOT_PASSWORD=secret
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  php-fpm:
+    build:
+      context: ./php-fpm
+    depends_on:
+      - database
+    environment:
+      - APP_ENV=dev
+      - APP_SECRET=24e17c47430bd2044a61c131c1cf6990
+      - DATABASE_URL=mysql://appuser:apppassword@database:3306/symfony?serverVersion=5.7
+    volumes:
+      - ../src:/var/www
+
+  nginx:
+    build:
+      context: ./nginx
+    volumes:
+      - ../src:/var/www
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/sites/:/etc/nginx/sites-available
+      - ./nginx/conf.d/:/etc/nginx/conf.d
+      - ./logs:/var/log
+    depends_on:
+      - php-fpm
+    ports:
+      - "80:80"
+      - "443:443"
+
+
